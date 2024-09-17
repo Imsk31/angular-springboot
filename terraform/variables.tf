@@ -30,8 +30,4 @@ variable "azs" {
   type = list(string)
   description = "Availability Zones"
 }
-variable "instancetype" {
-  type = string
-  description = "Instance Type For Cluster Node Groups"
-}
 
