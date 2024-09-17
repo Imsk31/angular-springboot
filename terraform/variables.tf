@@ -15,19 +15,19 @@ variable "vpc_cidr" {
   description = "VPC CIDR"
 }
 variable "public_subnets" {
-  type = list()
+  type = list(string)
   description = "Public Subnets"
 }
 variable "private_subnets" {
-  type = list()
+  type = list(string)
   description = "Private Subnets"
 }
 variable "intra_subnets" {
-  type = list()
+  type = list(string)
   description = "Intra Subnets for Cluter"
 }
 variable "azs" {
-  type = list()
+  type = list(string)
   description = "Availability Zones"
 }
 variable "instancetype" {
