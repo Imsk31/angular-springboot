@@ -21,25 +21,25 @@ module "eks" {
   subnet_ids               = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
 
-  # EKS Managed Node Group(s)
+  # EKS Managed Node Group
   eks_managed_node_group_defaults = {
     ami_type       = "AL2_x86_64"
-    instance_types = ["m5.large"]
+    instance_types = var.instancetype
 
     attach_cluster_primary_security_group = true
   }
 
   eks_managed_node_groups = {
     amc-cluster-wg = {
-      min_size     = 1
-      max_size     = 2
-      desired_size = 1
+      min_size     = 2
+      max_size     = 5
+      desired_size = 2
 
-      instance_types = ["t3.large"]
+      instance_types = var.instancetype
       capacity_type  = "SPOT"
 
       tags = {
-        ExtraTag = "helloworld"
+        ExtraTag = "eks-cluster"
       }
     }
   }
