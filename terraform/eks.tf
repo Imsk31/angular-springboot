@@ -43,6 +43,4 @@ module "eks" {
       }
     }
   }
-
-  tags = "eks-cluster"
 }
