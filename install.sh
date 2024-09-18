@@ -1,5 +1,28 @@
 #!/bin/sh
 
+# Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+sudo apt-get update 
+sudo apt-get install unzip -y
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Java installation for jenkins
+
+sudo apt update
+sudo apt install openjdk-17-jre -y
+
+# Jenkins installation 
+curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt-get update
+sudo apt-get install jenkins -y
+
+
+
 # Add Docker's official GPG key
 sudo apt-get update -y
 sudo apt-get install -y ca-certificates curl
@@ -37,13 +60,11 @@ curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_ch
 tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
 sudo mv /tmp/eksctl /usr/local/bin
 
-# Install AWS CLI
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
 # Clean up the AWS CLI installer
 rm -rf awscliv2.zip aws/
+
+#install mariaDB server
+sudo apt-get install mariadb-server -y
 
 # Add the docker group and user
 
