@@ -8,9 +8,9 @@ pipeline {
                         branches: [[name: '*/main']],
                         extensions: [],
                         userRemoteConfigs: [[url: 'https://github.com/Imsk31/angular-springboot.git']]
-			sh 'sudo rm -rf *'
                     ))
                 }
+			sh 'sudo rm -rf *'
             }
         }
     }
