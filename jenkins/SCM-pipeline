@@ -10,7 +10,7 @@ pipeline {
                         userRemoteConfigs: [[url: 'https://github.com/Imsk31/angular-springboot.git']]
                     ))
                 }
-			sh 'sudo rm -rf *'
+			sh 'rm -rf *'
             }
         }
     }
