@@ -50,7 +50,7 @@ pipeline {
 	{
 	 steps
 	  {
-	    sh'sudo rm -rf *'
+	    sh'rm -rf *'
 	 }
 	}
     }
