@@ -56,6 +56,12 @@ pipeline {
                     
                     // Optionally, print out the content to the console
                     echo "RDS Endpoint written to rds_endpoint.txt: ${rdsEndpoint}"
+
+                     // Pass the RDS endpoint to the 'RDS-pipeline' job
+                    build job: 'RDS-pipeline', wait: true, parameters: [string(name: 'RDS_ENDPOINT', value: rdsEndpoint)]
+
+                    // Optionally, print out the content to the console
+                    echo "RDS Endpoint written to rds_endpoint.txt: ${rdsEndpoint}"
                 }
             }
         }
