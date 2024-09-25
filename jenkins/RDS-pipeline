@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('ACESS_KEY')
+        AWS_SECRET_ACCESS_KEY = credentials('SECRET_KEY')
+        AWS_REGION = 'us-east-1'
+        PROPERTIES_PATH = 'angular-java/spring-backend/src/main/resources/application.properties'
+        SCHEMA_PATH = 'angular-java/springbackend.sql'
+    }
+    stages {
+        stage('Get RDS Endpoint') {
+            steps {
+                script {
+                    def output = sh(script: "terraform output rds_endpoint", returnStdout: true).trim()
+                    env.RDS_ENDPOINT = output
+                    echo "RDS Endpoint: ${RDS_ENDPOINT}"
+                }
+            }
+        }
+        stage('Update application.properties') {
+            steps {
+                script {
+                    // Update the properties file with dynamic RDS info
+                    sh """
+                    sed -i 's|^spring.datasource.url=.*|spring.datasource.url=jdbc:mysql://${RDS_ENDPOINT}:3306/springbackend?useSSL=false|' ${PROPERTIES_PATH}
+                    sed -i 's|^spring.datasource.username=.*|spring.datasource.username=${DB_USER}|' ${PROPERTIES_PATH}
+                    sed -i 's|^spring.datasource.password=.*|spring.datasource.password=${DB_PASSWORD}|' ${PROPERTIES_PATH}
+                    """
+                }
+            }
+        }
+        stage('Insert Database Schema') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'db_credentials', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASSWORD')]) {
+                    script {
+                       sh '''
+                        echo "Creating database 'springbackend' if it doesn't exist..."
+                        mysql -h ${DB_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS springbackend;"
+
+                        echo "Inserting the schema into the springbackend database..."
+                        mysql -h ${DB_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} springbackend < ${SCHEMA_PATH}
+
+                        echo "Database creation and schema insertion completed successfully."
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}
+

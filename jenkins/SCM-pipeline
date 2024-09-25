@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout SCM') {
+            steps {
+                script {
+                    checkout(scmGit(
+                        branches: [[name: '*/main']],
+                        extensions: [],
+                        userRemoteConfigs: [[url: 'https://github.com/Imsk31/angular-springboot.git']]
+                    ))
+                }
+            }
+        }
+    }
+    post {
+        success {
+            // Trigger the second pipeline
+            build job: 'Terraform-pipeline', waitForStart: true
+        }
+    }
+}
+
