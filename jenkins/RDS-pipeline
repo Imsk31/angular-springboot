@@ -6,7 +6,7 @@ pipeline {
         AWS_REGION = 'us-east-1'
         PROPERTIES_PATH = 'angular-java/spring-backend/src/main/resources/application.properties'
         SCHEMA_PATH = 'angular-java/springbackend.sql'
-        RDS_ENDPOINT_FILE = '/var/lib/jenkins/workspace/Terraform-pipeline/rds_endpoint.txt' // Full path to the RDS endpoint file
+        RDS_ENDPOINT_FILE = '/var/lib/jenkins/workspace/Terraform-pipeline/terraform/rds_endpoint.txt' // Full path to the RDS endpoint file
     }
     stages {
         stage('Get RDS Endpoint from File') {
