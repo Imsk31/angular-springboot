@@ -46,6 +46,13 @@ pipeline {
                 }
             }
         }
+	stage ('clear workspace')
+	{
+	 steps
+	  {
+	    sh'sudo rm -rf *'
+	 }
+	}
     }
 }
 
