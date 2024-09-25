@@ -46,9 +46,13 @@ pipeline {
     }
     post {
         success {
-            // Trigger the third pipeline
-            build job: 'RDS-pipeline', waitForStart: true
+            script {
+            dir('terraform') {
+                def rdsEndpoint = sh(script: 'terraform output -json rds_endpoint', returnStdout: true).trim()
+                build job: 'RDS-pipeline', wait: true, parameters: [string(name: 'RDS_ENDPOINT', value: rdsEndpoint)]
         }
     }
+  }
+ }
 }
 
