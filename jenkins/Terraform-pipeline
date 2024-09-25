@@ -48,11 +48,21 @@ pipeline {
         success {
             script {
             dir('terraform') {
-                def rdsEndpoint = sh(script: 'terraform output -json rds_endpoint', returnStdout: true).trim()
-                build job: 'RDS-pipeline', wait: true, parameters: [string(name: 'RDS_ENDPOINT', value: rdsEndpoint)]
+                dir('terraform') {
+                    // Retrieve the RDS endpoint as a JSON output
+                    def rdsEndpoint = sh(script: 'terraform output -json rds_endpoint', returnStdout: true).trim()
+                    
+                    // Extract the RDS endpoint from the JSON output
+                    def json = readJSON text: rdsEndpoint
+                    def endpoint = json.value // Adjust the key based on your output structure
+
+                    // Pass the RDS endpoint to the 'RDS-pipeline' job
+                    build job: 'RDS-pipeline', wait: true, parameters: [string(name: 'RDS_ENDPOINT', value: endpoint)]
+                    }
+                }
+            }
         }
     }
-  }
- }
 }
+
 
