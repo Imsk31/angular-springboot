@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        AWS_ACCESS_KEY_ID = credentials('ACCESS_KEY')
+        AWS_ACCESS_KEY_ID = credentials('ACESS_KEY')
         AWS_SECRET_ACCESS_KEY = credentials('SECRET_KEY')
         AWS_REGION = 'us-east-1'
         PROPERTIES_PATH = 'angular-java/spring-backend/src/main/resources/application.properties'
