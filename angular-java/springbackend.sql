@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS `tbl_workers` (
   `status` varchar(255) DEFAULT NULL,
   `workerfname` varchar(255) DEFAULT NULL,
   `workerlname` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`)  -- Primary key defined here
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -46,24 +46,12 @@ INSERT INTO `tbl_workers` (`id`, `status`, `workerfname`, `workerlname`) VALUES
 (42, 'Working', 'Filip', 'Filipovic');
 
 --
--- Indexes for dumped tables
---
-
---
--- Indexes for table `tbl_workers`
---
-ALTER TABLE `tbl_workers`
-  ADD PRIMARY KEY (`id`);
-
---
 -- AUTO_INCREMENT for dumped tables
 --
 
---
--- AUTO_INCREMENT for table `tbl_workers`
---
 ALTER TABLE `tbl_workers`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
