@@ -11,7 +11,6 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
-
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -27,11 +26,12 @@ SET time_zone = "+00:00";
 -- Table structure for table `tbl_workers`
 --
 
-CREATE TABLE IF NOT EXISTS 'tbl_workers' (
-  `id` bigint(20) NOT NULL,
+CREATE TABLE IF NOT EXISTS `tbl_workers` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `status` varchar(255) DEFAULT NULL,
   `workerfname` varchar(255) DEFAULT NULL,
-  `workerlname` varchar(255) DEFAULT NULL
+  `workerlname` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
