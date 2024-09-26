@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS `tbl_workers` (
 -- Dumping data for table `tbl_workers`
 --
 
-INSERT INTO `tbl_workers` (`id`, `status`, `workerfname`, `workerlname`) VALUES
+-- Use INSERT IGNORE to avoid duplicate key errors
+INSERT IGNORE INTO `tbl_workers` (`id`, `status`, `workerfname`, `workerlname`) VALUES
 (1, 'Working', 'Ivan', 'Holicek'),
 (37, 'Vacation', 'Marko', 'Markovic'),
 (40, 'Working', 'Ivo', 'Ivica'),
