@@ -3,7 +3,7 @@ pipeline {
     environment {
         AWS_ACCESS_KEY_ID = credentials('ACESS_KEY')
         AWS_SECRET_ACCESS_KEY = credentials('SECRET_KEY')
-        AWS_DEFAULT_REGION = 'us-east-1'
+        AWS_REGION = 'us-east-1'
         PROPERTIES_PATH = 'angular-java/spring-backend/src/main/resources/application.properties'
         SCHEMA_PATH = 'angular-java/springbackend.sql'
         RDS_ENDPOINT_FILE = '/var/lib/jenkins/workspace/MainPipeline/terraform/rds_endpoint.txt'
@@ -127,7 +127,6 @@ pipeline {
                 }
             }
         }
-
         stage('Clear Workspace') {
             steps {
                 cleanWs()
