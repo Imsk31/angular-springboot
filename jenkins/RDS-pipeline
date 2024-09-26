@@ -13,7 +13,8 @@ pipeline {
             steps {
                 script {
                     if (fileExists(RDS_ENDPOINT_FILE)) {
-                        env.RDS_ENDPOINT = readFile(RDS_ENDPOINT_FILE).trim().replaceAll('"', '')
+                        // Read the endpoint and remove the port if it exists
+                        env.RDS_ENDPOINT = readFile(RDS_ENDPOINT_FILE).trim().replaceAll('"', '').replaceAll(':3306', '')
                         echo "RDS Endpoint: ${env.RDS_ENDPOINT}"
                     } else {
                         error("RDS endpoint file does not exist: ${RDS_ENDPOINT_FILE}")
