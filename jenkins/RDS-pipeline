@@ -41,25 +41,25 @@ pipeline {
             }
         }
         stage('Insert Database Schema') {
-            steps {
-                // Fetch credentials again for the MySQL connection during schema insertion
-                withCredentials([
-                    string(credentialsId: 'username', variable: 'DB_USER'),
-                    string(credentialsId: 'password', variable: 'DB_PASSWORD')
-                ]) {
-                    script {
-                        // Insert the schema into the database
-                        sh """
-                        echo "Creating database 'springbackend' if it doesn't exist..."
-                        mysql -h ${env.RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS springbackend;"
+    steps {
+        withCredentials([
+            string(credentialsId: 'username', variable: 'DB_USER'),
+            string(credentialsId: 'password', variable: 'DB_PASSWORD')
+        ]) {
+            script {
+                // Use the correct MySQL command without the port in the RDS endpoint
+                sh """
+                echo "Creating database 'springbackend' if it doesn't exist..."
+                mysql -h ${env.RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS springbackend;"
 
-                        echo "Inserting schema into the 'springbackend' database..."
-                        mysql -h ${env.RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} springbackend < ${SCHEMA_PATH}
-                        """
-                    }
-                }
+                echo "Inserting schema into the 'springbackend' database..."
+                mysql -h ${env.RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} springbackend < ${SCHEMA_PATH}
+                """
             }
         }
+    }
+}
+
         stage('Clear Workspace') {
             steps {
                 // Cleanup workspace but keep Jenkins essential files
