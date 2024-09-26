@@ -23,9 +23,15 @@ pipeline {
         }
         stage('Update application.properties') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'db_credentials', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASSWORD')]) {
+                // Fetch the database username and password stored as separate secret text
+                withCredentials([
+                    string(credentialsId: 'username', variable: 'DB_USER'),
+                    string(credentialsId: 'password', variable: 'DB_PASSWORD')
+                ]) {
                     script {
+                        // Use the fetched credentials to update the application.properties file
                         sh """
+                        echo "Updating application.properties with RDS and DB credentials..."
                         sed -i "s|^spring.datasource.url=.*|spring.datasource.url=jdbc:mysql://${env.RDS_ENDPOINT}/springbackend?useSSL=false|" ${PROPERTIES_PATH}
                         sed -i "s|^spring.datasource.username=.*|spring.datasource.username=${DB_USER}|" ${PROPERTIES_PATH}
                         sed -i "s|^spring.datasource.password=.*|spring.datasource.password=${DB_PASSWORD}|" ${PROPERTIES_PATH}
@@ -36,25 +42,40 @@ pipeline {
         }
         stage('Insert Database Schema') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'db_credentials', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASSWORD')]) {
+                // Fetch credentials again for the MySQL connection during schema insertion
+                withCredentials([
+                    string(credentialsId: 'username', variable: 'DB_USER'),
+                    string(credentialsId: 'password', variable: 'DB_PASSWORD')
+                ]) {
                     script {
-                        sh '''
+                        // Insert the schema into the database
+                        sh """
                         echo "Creating database 'springbackend' if it doesn't exist..."
-                        mysql -h ${RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS springbackend;"
+                        mysql -h ${env.RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS springbackend;"
 
-                        echo "Inserting the schema into the springbackend database..."
-                        mysql -h ${RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} springbackend < ${SCHEMA_PATH}
-
-                        echo "Database creation and schema insertion completed successfully."
-                        '''
+                        echo "Inserting schema into the 'springbackend' database..."
+                        mysql -h ${env.RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} springbackend < ${SCHEMA_PATH}
+                        """
                     }
                 }
             }
         }
         stage('Clear Workspace') {
             steps {
-                sh 'rm -rf *'
+                // Cleanup workspace but keep Jenkins essential files
+                cleanWs()
             }
+        }
+    }
+    post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+        success {
+            echo 'Pipeline succeeded.'
         }
     }
 }
