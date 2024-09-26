@@ -6,16 +6,13 @@ pipeline {
         AWS_REGION = 'us-east-1'
         PROPERTIES_PATH = 'angular-java/spring-backend/src/main/resources/application.properties'
         SCHEMA_PATH = 'angular-java/springbackend.sql'
-        RDS_ENDPOINT_FILE = '/var/lib/jenkins/workspace/Terraform-pipeline/terraform/rds_endpoint.txt' // Full path to the RDS endpoint file
-
+        RDS_ENDPOINT_FILE = '/var/lib/jenkins/workspace/Terraform-pipeline/terraform/rds_endpoint.txt'
     }
-   stages {
+    stages {
         stage('Get RDS Endpoint from File') {
             steps {
                 script {
-                    // Check if the RDS endpoint file exists
                     if (fileExists(RDS_ENDPOINT_FILE)) {
-                        // Read the RDS endpoint and remove any quotes
                         env.RDS_ENDPOINT = readFile(RDS_ENDPOINT_FILE).trim().replaceAll('"', '')
                         echo "RDS Endpoint: ${env.RDS_ENDPOINT}"
                     } else {
@@ -26,13 +23,14 @@ pipeline {
         }
         stage('Update application.properties') {
             steps {
-                script {
-                    // Ensure no extra quotes in the RDS endpoint and update the properties file
-                    sh """
-                    sed -i "s|^spring.datasource.url=.*|spring.datasource.url=jdbc:mysql://${env.RDS_ENDPOINT}/springbackend?useSSL=false|" ${PROPERTIES_PATH}
-                    sed -i "s|^spring.datasource.username=.*|spring.datasource.username=${DB_USER}|" ${PROPERTIES_PATH}
-                    sed -i "s|^spring.datasource.password=.*|spring.datasource.password=${DB_PASSWORD}|" ${PROPERTIES_PATH}
-                    """
+                withCredentials([usernamePassword(credentialsId: 'db_credentials', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASSWORD')]) {
+                    script {
+                        sh """
+                        sed -i "s|^spring.datasource.url=.*|spring.datasource.url=jdbc:mysql://${env.RDS_ENDPOINT}/springbackend?useSSL=false|" ${PROPERTIES_PATH}
+                        sed -i "s|^spring.datasource.username=.*|spring.datasource.username=${DB_USER}|" ${PROPERTIES_PATH}
+                        sed -i "s|^spring.datasource.password=.*|spring.datasource.password=${DB_PASSWORD}|" ${PROPERTIES_PATH}
+                        """
+                    }
                 }
             }
         }
