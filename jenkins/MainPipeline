@@ -30,6 +30,7 @@ pipeline {
                 }
             }
         }
+
         stage('Validating Terraform') {
             steps {
                 script {
@@ -39,6 +40,7 @@ pipeline {
                 }
             }
         }
+
         stage('Previewing the infrastructure') {
             steps {
                 script {
@@ -48,6 +50,7 @@ pipeline {
                 }
             }
         }
+
         stage('Create/Destroy an EKS cluster') {
             steps {
                 script {
@@ -57,25 +60,22 @@ pipeline {
                 }
             }
         }
-        stage('Capture the RDS endpoint output')
-        {
-            script{
-                dir('terraform') {
-                    // Capture the RDS endpoint output
-                    def rdsEndpoint = sh(script: 'terraform output -json rds_endpoint', returnStdout: true).trim()
-                    
-                    // Write the RDS endpoint to a text file
-                    writeFile file: 'rds_endpoint.txt', text: rdsEndpoint
-                    
-                    // Optionally, print out the content to the console
-                    echo "RDS Endpoint written to rds_endpoint.txt: ${rdsEndpoint}"
 
-                    // Optionally, print out the content to the console
-                    echo "RDS Endpoint written to rds_endpoint.txt: ${rdsEndpoint}"
+        stage('Capture the RDS endpoint output') {
+            steps {
+                script {
+                    dir('terraform') {
+                        // Capture the RDS endpoint output
+                        def rdsEndpoint = sh(script: 'terraform output -json rds_endpoint', returnStdout: true).trim()
+                        
+                        // Write the RDS endpoint to a text file
+                        writeFile file: 'rds_endpoint.txt', text: rdsEndpoint
+                        echo "RDS Endpoint written to rds_endpoint.txt: ${rdsEndpoint}"
+                    }
                 }
             }
         }
-         stages {
+
         stage('Get RDS Endpoint from File') {
             steps {
                 script {
@@ -89,6 +89,7 @@ pipeline {
                 }
             }
         }
+
         stage('Update application.properties') {
             steps {
                 withCredentials([
@@ -106,6 +107,7 @@ pipeline {
                 }
             }
         }
+
         stage('Insert Database Schema') {
             steps {
                 withCredentials([
@@ -125,12 +127,12 @@ pipeline {
                 }
             }
         }
+
         stage('Clear Workspace') {
             steps {
                 cleanWs()
             }
         }
-     }
     }
     post {
         always {
@@ -144,4 +146,3 @@ pipeline {
         }
     }
 }
-
