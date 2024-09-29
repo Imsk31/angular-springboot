@@ -190,20 +190,54 @@ pipeline {
                 }
             }
         }
-        stage('Setup Load Balancer Controller and Apply Ingress') {
+        stage('Install AWS Load Balancer Controller') {
             steps {
-                 dir('/var/lib/jenkins/workspace/MainPipeline') {
-            script {
-                if (!fileExists('setup-load-balancer-controller.sh')) {
-                    error "setup-load-balancer-controller.sh not found in ${pwd()}"
+                script {
+                    sh '''
+                    #!/bin/bash
+                    set -e
+
+                    # Ensure Helm is installed
+                    if ! command -v helm &> /dev/null; then
+                        echo "Helm not installed. Please install Helm."
+                        exit 1
+                    fi
+
+                    # Add Helm repo for AWS Load Balancer Controller
+                    helm repo add eks https://aws.github.io/eks-charts
+                    helm repo update
+
+                    # Install or Upgrade AWS Load Balancer Controller
+                    helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+                      --set clusterName=${CLUSTER_NAME} \
+                      --set serviceAccount.create=false \
+                      --set serviceAccount.name=${SERVICE_ACCOUNT_NAME} \
+                      -n ${NAMESPACE}
+
+                    # Verify installation
+                    kubectl get deployment aws-load-balancer-controller -n ${NAMESPACE}
+                    '''
                 }
-                sh 'chmod +x setup-load-balancer-controller.sh'
-                
-                sh './setup-load-balancer-controller.sh'
-                
-                sh 'kubectl apply -f ingress.yaml -n dev'
             }
         }
+
+        stage('Apply Kubernetes Ingress') {
+            steps {
+                script {
+                    sh '''
+                    # Apply the Ingress configuration for the application
+                    kubectl apply -f ingress.yaml -n dev
+                    '''
+                }
+            }
+        }
+        stage('Verify Ingress Deployment') {
+            steps {
+                script {
+                    sh '''
+                    kubectl get ingress -n dev
+                    '''
+                }
             }
         }
         stage('Replace ALB DNS in Frontend') {
