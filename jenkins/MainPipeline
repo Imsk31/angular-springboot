@@ -179,11 +179,10 @@ pipeline {
                 }
             }
         }
-        stage('Backend Kubernetes Deployment') {
+        stage('Creating Deployment And service for backend') {
             steps {
-                script {
-                    dir('angular-java/spring-backend/manifest') {
-                        sh 'kubectl create ns dev || true'
+                dir('angular-java/spring-backend/manifest') {
+                    script {
                         sh 'kubectl apply -f deployment.yaml -n dev'
                         sh 'kubectl apply -f service.yaml -n dev'
                     }
