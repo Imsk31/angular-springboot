@@ -172,67 +172,67 @@ pipeline {
                 }
             }
         }
-        stage('Updating Kubeconfig'){
-            steps{
-                script{
-                    sh"aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}"
-                }
-            }
-        }
-        stage('Creating Deployment And service for backend'){
-            steps{
-                script{
-                     dir('angular-java/spring-backend/manifest')
-                     sh"kubectl create ns dev"
-                     sh"kubectl apply -f deployment.yaml -n dev"
-                     sh"kubectl apply -f service.yaml -n dev"
-                }
-            }
-        }
-        stage('Create service for Frontend'){
-            steps{
-                script{
-                    dir('angular-java/angular-frontend/manifest')
-                    sh"kubectl apply -f service.yaml -n dev"
-                }
-            }
-        }
-        stage('Setup Load Balancer Controller and Applying Ingress Resource') {
+        stage('Updating Kubeconfig') {
             steps {
                 script {
-                    // Run the shell script
-                    dir('angular-java')
-                    sh './setup-load-balancer-controller.sh'
-                    sh'kubectl apply -f ingress.yaml -n dev'
+                    sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}"
                 }
             }
         }
-        stage('Replacing ALB DNS in Frontend Source Code') {
+        stage('Backend Kubernetes Deployment') {
             steps {
                 script {
-                    // Get the ALB DNS name
+                    dir('angular-java/spring-backend/manifest') {
+                        sh 'kubectl create ns dev || true'
+                        sh 'kubectl apply -f deployment.yaml -n dev'
+                        sh 'kubectl apply -f service.yaml -n dev'
+                    }
+                }
+            }
+        }
+        stage('Frontend Kubernetes Service Deployment') {
+            steps {
+                script {
+                    dir('angular-java/angular-frontend/manifest') {
+                        sh 'kubectl apply -f service.yaml -n dev'
+                    }
+                }
+            }
+        }
+        stage('Setup Load Balancer Controller and Apply Ingress') {
+            steps {
+                script {
+                    dir('angular-java') {
+                        sh './setup-load-balancer-controller.sh'
+                        sh 'kubectl apply -f ingress.yaml -n dev'
+                    }
+                }
+            }
+        }
+        stage('Replace ALB DNS in Frontend') {
+            steps {
+                script {
                     def albDNS = sh(script: "kubectl get ingress -n dev -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
-
-                    // Replace ALB DNS in worker.service.ts
                     def serviceFilePath = 'angular-java/angular-frontend/src/app/worker.service.ts'
 
-                    // Use the `sed` command to replace the specific URL
-                    sh "sed -i 's|http://k8s-default-myapping-8cf2186fe6-1630135583.us-east-1.elb.amazonaws.com|http://${albDNS}|g' ${serviceFilePath}"
+                    sh "sed -i 's|http://.*|http://${albDNS}|g' ${serviceFilePath}"
                 }
             }
         }
-        stage('Logging into AWS ECR for Frontend repo') {
+        stage('Logging into AWS ECR for Frontend') {
             steps {
                 script {
-                    sh """aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin public.ecr.aws/p0w5f0m4"""
+                    sh """
+                    aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${FRONTEND_REPO}
+                    """
                 }
             }
         }
-        stage('Building Frontend image') {
+        stage('Building Frontend Image') {
             steps {
                 script {
                     dir('angular-java/angular-frontend') {
-                        sh "docker build -t ${FRONTEND_DOCKER_IMAGE_NAME} ."
+                        sh "docker build -t ${FRONTEND_DOCKER_IMAGE_NAME}:${IMAGE_TAG} ."
                     }
                 }
             }
@@ -245,27 +245,25 @@ pipeline {
                 }
             }
         }
-        stage('Replacing Frontend Image URI in Deployment Manifest File') {
+        stage('Replacing Frontend Image URI in Manifest File') {
             steps {
                 script {
                     def imageURI = "${FRONTEND_REPO}:${IMAGE_TAG}"
                     def manifestFile = 'angular-java/angular-frontend/manifest/deployment.yaml'
 
-                    // Use sed to replace the image in the YAML file
                     sh """
                     sed -i 's|image:.*|image: ${imageURI}|' ${manifestFile}
                     """
-                    
-                    // Optional: verify the replacement
                     sh "cat ${manifestFile}"
                 }
             }
         }
-        stage('Creating Deployment For Frontend'){
-            steps{
-                script{
-                    dir('angular-java/angular-frontend/manifest')
-                    sh'kubectl apply -f deployment.yaml -n dev'
+        stage('Frontend Kubernetes Deployment') {
+            steps {
+                script {
+                    dir('angular-java/angular-frontend/manifest') {
+                        sh 'kubectl apply -f deployment.yaml -n dev'
+                    }
                 }
             }
         }
