@@ -190,6 +190,19 @@ pipeline {
                 }
             }
         }
+        stage('Check Helm Installation') {
+    steps {
+        script {
+            // Print the PATH to debug
+            echo "Current PATH: ${env.PATH}"
+
+            // Check for Helm
+            if (!fileExists('/usr/local/bin/helm')) {
+                error "Helm not found. Please install Helm."
+            }
+        }
+    }
+}
         stage('Install AWS Load Balancer Controller') {
             steps {
                 script {
