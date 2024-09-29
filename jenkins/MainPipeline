@@ -44,22 +44,22 @@ pipeline {
         }
         stage('Initializing And Validating Terraform') {
             steps {
+                dir('terraform')
                 script {
-                    dir('terraform') {
                         sh 'terraform init && terraform validate'
                     }
                 }
-            }
         }
         stage('Previewing the infrastructure') {
             steps {
+                dir('terraform')
                 script {
-                    dir('terraform') {
+                     {
                         sh 'terraform plan'
                     }
                 }
             }
-        }
+        }    
         stage('Create/Destroy an EKS cluster') {
             steps {
                 script {
@@ -141,12 +141,11 @@ pipeline {
         }
         stage('Building Backend image') {
             steps {
+                dir('angular-java/spring-backend')
                 script {
-                    dir('angular-java/spring-backend') {
                         sh "docker build -t ${BACKEND_DOCKER_IMAGE_NAME} ."
                     }
                 }
-            }
         }
         stage('Pushing Backend Image to ECR') {
             steps {
@@ -191,17 +190,16 @@ pipeline {
         }
         stage('Frontend Kubernetes Service Deployment') {
             steps {
+                dir('angular-java/angular-frontend/manifest')
                 script {
-                    dir('angular-java/angular-frontend/manifest') {
                         sh 'kubectl apply -f service.yaml -n dev'
                     }
                 }
             }
-        }
         stage('Setup Load Balancer Controller and Apply Ingress') {
             steps {
-                script {
-                    dir('angular-java') {
+                dir('angular-java') {
+                    script {
                         sh './setup-load-balancer-controller.sh'
                         sh 'kubectl apply -f ingress.yaml -n dev'
                     }
@@ -229,13 +227,12 @@ pipeline {
         }
         stage('Building Frontend Image') {
             steps {
-                script {
-                    dir('angular-java/angular-frontend') {
+                dir('angular-java/angular-frontend')
+                script{
                         sh "docker build -t ${FRONTEND_DOCKER_IMAGE_NAME}:${IMAGE_TAG} ."
                     }
                 }
             }
-        }
         stage('Pushing Frontend Image to ECR') {
             steps {
                 script {
@@ -259,12 +256,12 @@ pipeline {
         }
         stage('Frontend Kubernetes Deployment') {
             steps {
-                script {
-                    dir('angular-java/angular-frontend/manifest') {
+                dir('angular-java/angular-frontend/manifest')
+                script 
+                     {
                         sh 'kubectl apply -f deployment.yaml -n dev'
                     }
                 }
-            }
         }
         stage('Clear Workspace') {
             steps {
