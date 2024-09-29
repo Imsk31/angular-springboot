@@ -190,50 +190,18 @@ pipeline {
                 }
             }
         }
-        stage('Check Helm Installation') {
-    steps {
-        script {
-            // Print the PATH to debug
-            echo "Current PATH: ${env.PATH}"
-
-            // Check for Helm
-            if (!fileExists('/usr/local/bin/helm')) {
-                error "Helm not found. Please install Helm."
-            }
-        }
-    }
-}
         stage('Install AWS Load Balancer Controller') {
             steps {
                 script {
+                    dir('/var/lib/jenkins/workspace/MainPipeline') {
                     sh '''
-                    #!/bin/bash
-                    set -e
-
-                    # Ensure Helm is installed
-                    if ! command -v helm &> /dev/null; then
-                        echo "Helm not installed. Please install Helm."
-                        exit 1
-                    fi
-
-                    # Add Helm repo for AWS Load Balancer Controller
-                    helm repo add eks https://aws.github.io/eks-charts
-                    helm repo update
-
-                    # Install or Upgrade AWS Load Balancer Controller
-                    helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
-                      --set clusterName=${CLUSTER_NAME} \
-                      --set serviceAccount.create=false \
-                      --set serviceAccount.name=${SERVICE_ACCOUNT_NAME} \
-                      -n ${NAMESPACE}
-
-                    # Verify installation
-                    kubectl get deployment aws-load-balancer-controller -n ${NAMESPACE}
+                    chmod +x setup-load-balancer-controller.sh
+                    ./setup-load-balancer-controller.sh
                     '''
                 }
             }
         }
-
+    }
         stage('Apply Kubernetes Ingress') {
             steps {
                 script {
