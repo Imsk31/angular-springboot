@@ -44,3 +44,14 @@ module "eks" {
     }
   }
 }
+
+# Add the security group rule to allow ingress from the control plane
+resource "aws_security_group_rule" "ingress_allow_access_from_control_plane" {
+  type                     = "ingress"
+  from_port                = 9443
+  to_port                  = 9443
+  protocol                 = "tcp"
+  security_group_id        = module.eks.cluster_security_group_id  # Security group for EKS worker nodes
+  source_security_group_id = module.eks.cluster_security_group_id  # Same security group as the control plane
+  description              = "Allow access from control plane to webhook port of AWS Load Balancer Controller"
+}
