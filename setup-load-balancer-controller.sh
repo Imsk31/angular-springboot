@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Variables
-CLUSTER_NAME="your-cluster-name"  # Replace with your EKS cluster name
+CLUSTER_NAME="msd"  # Replace with your EKS cluster name
 NAMESPACE="kube-system"
 SERVICE_ACCOUNT_NAME="aws-load-balancer-controller"
 
