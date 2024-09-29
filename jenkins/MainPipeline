@@ -42,7 +42,6 @@ pipeline {
                 }
             }
         }
-
         stage('Initializing And Validating Terraform') {
             steps {
                 script {
@@ -97,7 +96,6 @@ pipeline {
                 }
             }
         }
-
         stage('Update application.properties') {
             steps {
                 withCredentials([
@@ -134,25 +132,14 @@ pipeline {
                 }
             }
         }
-        stage('Checkout SCM') {
-            steps {
-                script {
-                    checkout(scmGit(
-                        branches: [[name: '*/main']],
-                        extensions: [],
-                        userRemoteConfigs: [[url: 'https://github.com/Imsk31/angular-springboot.git']]
-                    ))
-                }
-            }
-        }
-        stage('Logging into AWS ECR') {
+        stage('Logging into AWS ECR of Backend repo') {
             steps {
                 script {
                     sh """aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin public.ecr.aws/p0w5f0m4"""
                 }
             }
         }
-        stage('Building image') {
+        stage('Building Backend image') {
             steps {
                 script {
                     dir('angular-java/spring-backend') {
@@ -161,7 +148,7 @@ pipeline {
                 }
             }
         }
-        stage('Pushing to ECR') {
+        stage('Pushing Backend Image to ECR') {
             steps {
                 script {
                     sh "docker tag ${BACKEND_DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${BACKEND_REPO}:${IMAGE_TAG}"
@@ -169,7 +156,7 @@ pipeline {
                 }
             }
         }
-        stage('Replacing Image URI in Deployment Manifest File') {
+        stage('Replacing Backend Image URI in Deployment Manifest File') {
             steps {
                 script {
                     def imageURI = "${BACKEND_REPO}:${IMAGE_TAG}"
@@ -234,14 +221,14 @@ pipeline {
                 }
             }
         }
-        stage('Logging into AWS ECR') {
+        stage('Logging into AWS ECR for Frontend repo') {
             steps {
                 script {
                     sh """aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin public.ecr.aws/p0w5f0m4"""
                 }
             }
         }
-        stage('Building image') {
+        stage('Building Frontend image') {
             steps {
                 script {
                     dir('angular-java/angular-frontend') {
@@ -250,7 +237,7 @@ pipeline {
                 }
             }
         }
-        stage('Pushing to ECR') {
+        stage('Pushing Frontend Image to ECR') {
             steps {
                 script {
                     sh "docker tag ${FRONTEND_DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${FRONTEND_REPO}:${IMAGE_TAG}"
@@ -258,7 +245,7 @@ pipeline {
                 }
             }
         }
-        stage('Replacing Image URI in Deployment Manifest File') {
+        stage('Replacing Frontend Image URI in Deployment Manifest File') {
             steps {
                 script {
                     def imageURI = "${FRONTEND_REPO}:${IMAGE_TAG}"
