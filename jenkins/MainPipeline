@@ -192,12 +192,18 @@ pipeline {
         }
         stage('Setup Load Balancer Controller and Apply Ingress') {
             steps {
-                dir('angular-java') {
-                    script {
-                        sh './setup-load-balancer-controller.sh'
-                        sh 'kubectl apply -f ingress.yaml -n dev'
-                    }
+                 dir('angular-springboot') {
+            script {
+                if (!fileExists('setup-load-balancer-controller.sh')) {
+                    error "setup-load-balancer-controller.sh not found in ${pwd()}"
                 }
+                sh 'chmod +x setup-load-balancer-controller.sh'
+                
+                sh './setup-load-balancer-controller.sh'
+                
+                sh 'kubectl apply -f ingress.yaml -n dev'
+            }
+        }
             }
         }
         stage('Replace ALB DNS in Frontend') {
