@@ -7,11 +7,33 @@ pipeline {
         PROPERTIES_PATH = 'angular-java/spring-backend/src/main/resources/application.properties'
         SCHEMA_PATH = 'angular-java/springbackend.sql'
         RDS_ENDPOINT_FILE = '/var/lib/jenkins/workspace/MainPipeline/terraform/rds_endpoint.txt'
+        BACKEND_DOCKER_IMAGE_NAME = 'backend'
+        IMAGE_TAG = 'latest'
+        BACKEND_REPO = 'public.ecr.aws/p0w5f0m4/backend'
+        FRONTEND_DOCKER_IMAGE_NAME = 'frontend'
+        FRONTEND_REPO = 'public.ecr.aws/p0w5f0m4/frontend'
+        CLUSTER_NAME = 'msd'
     }
     stages {
+        stage('Validate AWS CLI Credentials') {
+            steps {
+                script {
+                    // Verify AWS CLI configuration by checking identity
+                    sh """
+                    aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
+                    aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
+                    aws configure set region ${AWS_REGION}
+
+                    # Validate the credentials by calling STS to get the caller identity
+                    aws sts get-caller-identity
+                    """
+                }
+            }
+        }
         stage('Checkout SCM') {
             steps {
                 script {
+                    // Cloning Git repo
                     checkout(scmGit(
                         branches: [[name: '*/main']],
                         extensions: [],
@@ -21,26 +43,15 @@ pipeline {
             }
         }
 
-        stage('Initializing Terraform') {
+        stage('Initializing And Validating Terraform') {
             steps {
                 script {
                     dir('terraform') {
-                        sh 'terraform init'
+                        sh 'terraform init && terraform validate'
                     }
                 }
             }
         }
-
-        stage('Validating Terraform') {
-            steps {
-                script {
-                    dir('terraform') {
-                        sh 'terraform validate'
-                    }
-                }
-            }
-        }
-
         stage('Previewing the infrastructure') {
             steps {
                 script {
@@ -50,7 +61,6 @@ pipeline {
                 }
             }
         }
-
         stage('Create/Destroy an EKS cluster') {
             steps {
                 script {
@@ -60,7 +70,6 @@ pipeline {
                 }
             }
         }
-
         stage('Capture the RDS endpoint output') {
             steps {
                 script {
@@ -75,7 +84,6 @@ pipeline {
                 }
             }
         }
-
         stage('Get RDS Endpoint from File') {
             steps {
                 script {
@@ -107,7 +115,6 @@ pipeline {
                 }
             }
         }
-
         stage('Insert Database Schema') {
             steps {
                 withCredentials([
@@ -124,6 +131,154 @@ pipeline {
                         mysql -h ${env.RDS_ENDPOINT} -u ${DB_USER} -p${DB_PASSWORD} springbackend < ${SCHEMA_PATH}
                         """
                     }
+                }
+            }
+        }
+        stage('Checkout SCM') {
+            steps {
+                script {
+                    checkout(scmGit(
+                        branches: [[name: '*/main']],
+                        extensions: [],
+                        userRemoteConfigs: [[url: 'https://github.com/Imsk31/angular-springboot.git']]
+                    ))
+                }
+            }
+        }
+        stage('Logging into AWS ECR') {
+            steps {
+                script {
+                    sh """aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin public.ecr.aws/p0w5f0m4"""
+                }
+            }
+        }
+        stage('Building image') {
+            steps {
+                script {
+                    dir('angular-java/spring-backend') {
+                        sh "docker build -t ${BACKEND_DOCKER_IMAGE_NAME} ."
+                    }
+                }
+            }
+        }
+        stage('Pushing to ECR') {
+            steps {
+                script {
+                    sh "docker tag ${BACKEND_DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${BACKEND_REPO}:${IMAGE_TAG}"
+                    sh "docker push ${BACKEND_REPO}:${IMAGE_TAG}"
+                }
+            }
+        }
+        stage('Replacing Image URI in Deployment Manifest File') {
+            steps {
+                script {
+                    def imageURI = "${BACKEND_REPO}:${IMAGE_TAG}"
+                    def manifestFile = 'angular-java/spring-backend/manifest/deployment.yaml'
+
+                    // Use sed to replace the image in the YAML file
+                    sh """
+                    sed -i 's|image:.*|image: ${imageURI}|' ${manifestFile}
+                    """
+                    
+                    // Optional: verify the replacement
+                    sh "cat ${manifestFile}"
+                }
+            }
+        }
+        stage('Updating Kubeconfig'){
+            steps{
+                script{
+                    sh"aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}"
+                }
+            }
+        }
+        stage('Creating Deployment And service for backend'){
+            steps{
+                script{
+                     dir('angular-java/spring-backend/manifest')
+                     sh"kubectl create ns dev"
+                     sh"kubectl apply -f deployment.yaml -n dev"
+                     sh"kubectl apply -f service.yaml -n dev"
+                }
+            }
+        }
+        stage('Create service for Frontend'){
+            steps{
+                script{
+                    dir('angular-java/angular-frontend/manifest')
+                    sh"kubectl apply -f service.yaml -n dev"
+                }
+            }
+        }
+        stage('Setup Load Balancer Controller and Applying Ingress Resource') {
+            steps {
+                script {
+                    // Run the shell script
+                    dir('angular-java')
+                    sh './setup-load-balancer-controller.sh'
+                    sh'kubectl apply -f ingress.yaml -n dev'
+                }
+            }
+        }
+        stage('Replacing ALB DNS in Frontend Source Code') {
+            steps {
+                script {
+                    // Get the ALB DNS name
+                    def albDNS = sh(script: "kubectl get ingress -n dev -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
+
+                    // Replace ALB DNS in worker.service.ts
+                    def serviceFilePath = 'angular-java/angular-frontend/src/app/worker.service.ts'
+
+                    // Use the `sed` command to replace the specific URL
+                    sh "sed -i 's|http://k8s-default-myapping-8cf2186fe6-1630135583.us-east-1.elb.amazonaws.com|http://${albDNS}|g' ${serviceFilePath}"
+                }
+            }
+        }
+        stage('Logging into AWS ECR') {
+            steps {
+                script {
+                    sh """aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin public.ecr.aws/p0w5f0m4"""
+                }
+            }
+        }
+        stage('Building image') {
+            steps {
+                script {
+                    dir('angular-java/angular-frontend') {
+                        sh "docker build -t ${FRONTEND_DOCKER_IMAGE_NAME} ."
+                    }
+                }
+            }
+        }
+        stage('Pushing to ECR') {
+            steps {
+                script {
+                    sh "docker tag ${FRONTEND_DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${FRONTEND_REPO}:${IMAGE_TAG}"
+                    sh "docker push ${FRONTEND_REPO}:${IMAGE_TAG}"
+                }
+            }
+        }
+        stage('Replacing Image URI in Deployment Manifest File') {
+            steps {
+                script {
+                    def imageURI = "${FRONTEND_REPO}:${IMAGE_TAG}"
+                    def manifestFile = 'angular-java/angular-frontend/manifest/deployment.yaml'
+
+                    // Use sed to replace the image in the YAML file
+                    sh """
+                    sed -i 's|image:.*|image: ${imageURI}|' ${manifestFile}
+                    """
+                    
+                    // Optional: verify the replacement
+                    sh "cat ${manifestFile}"
+                }
+            }
+        }
+        stage('Creating Deployment For Frontend'){
+            steps{
+                script{
+                    dir('angular-java/angular-frontend/manifest')
+                    sh'kubectl apply -f deployment.yaml -n dev'
                 }
             }
         }
