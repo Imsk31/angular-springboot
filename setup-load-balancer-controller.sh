@@ -37,7 +37,7 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set clusterName="$CLUSTER_NAME" \
   --set serviceAccount.create=false \
   --set serviceAccount.name="$SERVICE_ACCOUNT_NAME" \
-  -n $NAMESPACE
+  -n $NAMESPACE --force
 
 # Check if the installation was successful
 if [ $? -eq 0 ]; then
