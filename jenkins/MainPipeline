@@ -227,7 +227,8 @@ pipeline {
                     def albDNS = sh(script: "kubectl get ingress -n dev -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
                     def serviceFilePath = 'angular-java/angular-frontend/src/app/worker.service.ts'
 
-                    sh "sed -i 's|http://.*|http://${albDNS}|g' ${serviceFilePath}"
+                    sh "sed -i 's|k8s-default-myapping-8cf2186fe6-1630135583.us-east-1.elb.amazonaws.com|'"${albDNS}"'|g' ${serviceFilePath}
+"
                 }
             }
         }
