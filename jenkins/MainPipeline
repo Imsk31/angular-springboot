@@ -273,6 +273,14 @@ pipeline {
                 }
             }
         }
+        stage('Wait for 1 Minute') {
+            steps {
+                script {
+                    echo "Waiting for 1 minute..."
+                    sleep(time: 60, unit: 'SECONDS') // Wait for 60 seconds
+                }
+            }
+        }
         stage('Replace ALB DNS in Frontend') {
             steps {
                 script {
