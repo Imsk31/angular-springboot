@@ -68,33 +68,36 @@ pipeline {
        stage('create cluster') {
     steps {
         script {
-            // Run the eksctl command and capture the output and exit status
-            def result = sh(
-                script: """
-                    eksctl create cluster \
-                    --name msd \
-                    --region us-east-1 \
-                    --nodes 2 \
-                    --nodes-min 1 \
-                    --nodes-max 3 \
-                    --nodegroup-name my-nodegroup \
-                    --node-type t3.medium \
-                    --managed
-                """,
-                returnStatus: true, // Capture the exit status (0 = success, non-zero = failure)
-                returnStdout: true  // Capture the output of the command
-            )
+            try {
+                // Run the eksctl command to create the cluster
+                def output = sh(
+                    script: """
+                        eksctl create cluster \
+                        --name msd \
+                        --region us-east-1 \
+                        --nodes 2 \
+                        --nodes-min 1 \
+                        --nodes-max 3 \
+                        --nodegroup-name my-nodegroup \
+                        --node-type t3.medium \
+                        --managed
+                    """,
+                    returnStatus: true, // Capture the exit status (0 for success, non-zero for failure)
+                    returnStdout: true  // Capture the command output
+                ).trim()
 
-            // Check the result and handle failure scenarios
-            if (result != 0) {
-                echo "Cluster creation failed."
-                if (result.contains("AlreadyExistsException")) {
-                    echo "Cluster [msd] already exists. Skipping cluster creation."
+                // Check if the output contains AlreadyExistsException
+                if (output.contains("AlreadyExistsException")) {
+                    echo "Cluster 'msd' already exists. Moving to the next stage."
+                } else if (output.contains("Error: failed to create cluster")) {
+                    error("Failed to create cluster 'msd'. Check the logs: ${output}")
                 } else {
-                    error("Failed to create cluster with error: ${result}")
+                    echo "Cluster created successfully!"
                 }
-            } else {
-                echo "Cluster creation successful!"
+
+            } catch (Exception e) {
+                // Catch any other errors and fail the pipeline
+                error("Cluster creation encountered an error: ${e.getMessage()}")
             }
         }
     }
