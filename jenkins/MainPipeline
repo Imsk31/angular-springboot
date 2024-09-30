@@ -382,6 +382,11 @@ pipeline {
                 }
             }
         }
+        stage('Clear Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
     }
     post {
         always {
