@@ -221,11 +221,26 @@ pipeline {
                 }
             }
         }
+        stage('Create Namespace') {
+            steps {
+                script {
+                    // Check if the 'dev' namespace exists
+                    def namespace_exists = sh(script: "kubectl get ns dev --ignore-not-found", returnStdout: true).trim()
+
+                    if (namespace_exists) {
+                        echo "Namespace 'dev' already exists."
+                    } else {
+                        // Create the 'dev' namespace if it doesn't exist
+                        sh "kubectl create ns dev"
+                        echo "Namespace 'dev' created successfully."
+                    }
+                }
+            }
+        }
         stage('Creating Deployment And service for backend') {
             steps {
                 dir('angular-java/spring-backend/manifest') {
                     script {
-                        sh'kubectl create ns dev'
                         sh 'kubectl apply -f deployment.yaml -n dev'
                         sh 'kubectl apply -f service.yaml -n dev'
                     }
