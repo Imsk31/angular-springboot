@@ -239,6 +239,25 @@ pipeline {
                 }
             }
         }
+        stage('Apply Kubernetes Ingress') {
+            steps {
+                script {
+                    sh '''
+                    # Apply the Ingress configuration for the application
+                    kubectl apply -f ingress.yaml
+                    '''
+                }
+            }
+        }
+        stage('Verify Ingress Deployment') {
+            steps {
+                script {
+                    sh '''
+                    kubectl get ingress
+                    '''
+                }
+            }
+        }
         stage('Replace ALB DNS in Frontend') {
             steps {
                 script {
@@ -291,25 +310,6 @@ pipeline {
             steps {
                 dir('angular-java/angular-frontend/manifest') {
                     sh 'kubectl apply -f deployment.yaml -n dev'
-                }
-            }
-        }
-        stage('Apply Kubernetes Ingress') {
-            steps {
-                script {
-                    sh '''
-                    # Apply the Ingress configuration for the application
-                    kubectl apply -f ingress.yaml
-                    '''
-                }
-            }
-        }
-        stage('Verify Ingress Deployment') {
-            steps {
-                script {
-                    sh '''
-                    kubectl get ingress
-                    '''
                 }
             }
         }
