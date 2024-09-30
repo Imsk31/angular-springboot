@@ -65,11 +65,11 @@ pipeline {
                 }
             }
         }
-        stage('create cluster') {
+       stage('create cluster') {
     steps {
         script {
             // Run the eksctl command and capture the output and exit status
-            def output = sh(
+            def result = sh(
                 script: """
                     eksctl create cluster \
                     --name msd \
@@ -81,21 +81,25 @@ pipeline {
                     --node-type t3.medium \
                     --managed
                 """,
-                returnStatus: true, // Capture the exit status
-                returnStdout: true  // Capture the output
+                returnStatus: true, // Capture the exit status (0 = success, non-zero = failure)
+                returnStdout: true  // Capture the output of the command
             )
 
-            // Check for AlreadyExistsException in the output
-            if (output.contains("AlreadyExistsException")) {
-                echo "Stack [eksctl-msd-cluster] already exists. Skipping cluster creation."
-            } else if (output.contains("failed to create cluster")) {
-                error("Cluster creation failed with message: ${output}")
+            // Check the result and handle failure scenarios
+            if (result != 0) {
+                echo "Cluster creation failed."
+                if (result.contains("AlreadyExistsException")) {
+                    echo "Cluster [msd] already exists. Skipping cluster creation."
+                } else {
+                    error("Failed to create cluster with error: ${result}")
+                }
             } else {
                 echo "Cluster creation successful!"
-                    }
-                }
             }
         }
+    }
+}
+
         stage('Capture the RDS endpoint output') {
             steps {
                 script {
