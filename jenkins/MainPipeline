@@ -173,6 +173,18 @@ pipeline {
                 }
             }
         }
+        stage('Install AWS Load Balancer Controller') {
+            steps {
+                script {
+                    dir('/var/lib/jenkins/workspace/MainPipeline') {
+                    sh '''
+                    chmod +x setup-load-balancer-controller.sh
+                    ./setup-load-balancer-controller.sh
+                    '''
+                    }
+                }
+            }
+        }
         stage('Creating Deployment And service for backend') {
             steps {
                 dir('angular-java/spring-backend/manifest') {
@@ -190,18 +202,6 @@ pipeline {
                 }
             }
         }
-        stage('Install AWS Load Balancer Controller') {
-            steps {
-                script {
-                    dir('/var/lib/jenkins/workspace/MainPipeline') {
-                    sh '''
-                    chmod +x setup-load-balancer-controller.sh
-                    ./setup-load-balancer-controller.sh
-                    '''
-                }
-            }
-        }
-    }
         stage('Apply Kubernetes Ingress') {
             steps {
                 script {
