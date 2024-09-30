@@ -225,6 +225,7 @@ pipeline {
             steps {
                 dir('angular-java/spring-backend/manifest') {
                     script {
+                        sh'kubectl create ns dev'
                         sh 'kubectl apply -f deployment.yaml -n dev'
                         sh 'kubectl apply -f service.yaml -n dev'
                     }
@@ -235,25 +236,6 @@ pipeline {
             steps {
                 dir('angular-java/angular-frontend/manifest') {
                     sh 'kubectl apply -f service.yaml -n dev'
-                }
-            }
-        }
-        stage('Apply Kubernetes Ingress') {
-            steps {
-                script {
-                    sh '''
-                    # Apply the Ingress configuration for the application
-                    kubectl apply -f ingress.yaml -n dev
-                    '''
-                }
-            }
-        }
-        stage('Verify Ingress Deployment') {
-            steps {
-                script {
-                    sh '''
-                    kubectl get ingress -n dev
-                    '''
                 }
             }
         }
@@ -309,6 +291,25 @@ pipeline {
             steps {
                 dir('angular-java/angular-frontend/manifest') {
                     sh 'kubectl apply -f deployment.yaml -n dev'
+                }
+            }
+        }
+        stage('Apply Kubernetes Ingress') {
+            steps {
+                script {
+                    sh '''
+                    # Apply the Ingress configuration for the application
+                    kubectl apply -f ingress.yaml
+                    '''
+                }
+            }
+        }
+        stage('Verify Ingress Deployment') {
+            steps {
+                script {
+                    sh '''
+                    kubectl get ingress
+                    '''
                 }
             }
         }
