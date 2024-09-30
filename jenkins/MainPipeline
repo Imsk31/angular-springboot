@@ -382,6 +382,16 @@ pipeline {
                 }
             }
         }
+         stage("Delete unneccesary images and containers") {
+            steps {
+                script {
+                    sh ''' 
+                    docker stop $(docker ps -q) && docker rm $(docker ps -aq) && docker system prune -af --volumes 
+                    echo "Deleted all unccessary images and conainers and cleared workspace "
+                    '''
+                }
+            }
+        }
         stage('Clear Workspace') {
             steps {
                 cleanWs()
