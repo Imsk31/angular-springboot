@@ -276,7 +276,7 @@ pipeline {
         stage('Replace ALB DNS in Frontend') {
             steps {
                 script {
-                 def albDNS = sh(script: "kubectl get ingress -n dev -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
+                 def albDNS = sh(script: "kubectl get ingress -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
                  def serviceFilePath = 'angular-java/angular-frontend/src/app/worker.service.ts'
 
                  // Using double quotes for the outer shell command and single quotes inside for sed
