@@ -277,7 +277,7 @@ pipeline {
             steps {
                 script {
                  def albDNS = sh(script: "kubectl get ingress -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
-                 def serviceFilePath = 'angular-java/angular-frontend/src/app/worker.service.ts'
+                 def serviceFilePath = 'angular-java/angular-frontend/src/app/services/worker.service.ts'
 
                  // Using double quotes for the outer shell command and single quotes inside for sed
                  sh "sed -i 's|k8s-default-myapping-8cf2186fe6-1630135583.us-east-1.elb.amazonaws.com|${albDNS}|g' ${serviceFilePath}"
