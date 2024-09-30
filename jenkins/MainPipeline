@@ -204,7 +204,7 @@ pipeline {
                 }
             }
         }
-        stage('Install AWS Load Balancer Controller') {
+        stage('Create OIDC Provider and IAM policies') {
             steps {
                 script {
                     sh '''
@@ -238,6 +238,16 @@ pipeline {
                       --attach-policy-arn=arn:aws:iam::891377175977:policy/AWSLoadBalancerControllerIAMPolicy \
                       --approve
 
+                    '''
+                }
+            }
+        }
+        stage('Install AWS Load Balancer Controller') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    
                     kubectl apply \
                         --validate=false \
                         -f https://github.com/jetstack/cert-manager/releases/download/v1.13.5/cert-manager.yaml
