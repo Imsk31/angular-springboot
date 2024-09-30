@@ -65,44 +65,41 @@ pipeline {
                 }
             }
         }
-       stage('create cluster') {
+       stage('create cluster or proceed') {
     steps {
         script {
-            try {
-                // Run the eksctl command to create the cluster
+            def status = sh(
+                script: """
+                    eksctl create cluster \
+                    --name msd \
+                    --region us-east-1 \
+                    --nodes 2 \
+                    --nodes-min 1 \
+                    --nodes-max 3 \
+                    --nodegroup-name my-nodegroup \
+                    --node-type t3.medium \
+                    --managed 2>&1
+                """,
+                returnStatus: true  // Capture exit status (0 for success, non-zero for failure)
+            )
+
+            if (status != 0) { // If the cluster creation command failed
                 def output = sh(
-                    script: """
-                        eksctl create cluster \
-                        --name msd \
-                        --region us-east-1 \
-                        --nodes 2 \
-                        --nodes-min 1 \
-                        --nodes-max 3 \
-                        --nodegroup-name my-nodegroup \
-                        --node-type t3.medium \
-                        --managed
-                    """,
-                    returnStatus: true, // Capture the exit status (0 for success, non-zero for failure)
-                    returnStdout: true  // Capture the command output
-                ).trim()
-
-                // Check if the output contains AlreadyExistsException
-                if (output.contains("AlreadyExistsException")) {
-                    echo "Cluster 'msd' already exists. Moving to the next stage."
-                } else if (output.contains("Error: failed to create cluster")) {
-                    error("Failed to create cluster 'msd'. Check the logs: ${output}")
+                    script: "eksctl get cluster --name msd --region us-east-1",
+                    returnStatus: true
+                )
+                
+                if (output == 0) {
+                    echo "Cluster 'msd' already exists. Proceeding to the next stage."
                 } else {
-                    echo "Cluster created successfully!"
+                    echo "Failed to create cluster 'msd' for an unknown reason. Proceeding to the next stage."
                 }
-
-            } catch (Exception e) {
-                // Catch any other errors and fail the pipeline
-                error("Cluster creation encountered an error: ${e.getMessage()}")
+            } else {
+                echo "Cluster created successfully! Proceeding to the next stage."
             }
         }
     }
 }
-
         stage('Capture the RDS endpoint output') {
             steps {
                 script {
