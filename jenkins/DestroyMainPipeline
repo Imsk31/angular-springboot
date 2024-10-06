@@ -1,0 +1,150 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('ACESS_KEY')
+        AWS_SECRET_ACCESS_KEY = credentials('SECRET_KEY')
+        AWS_REGION = 'us-east-1'
+        CLUSTER_NAME = 'msd'
+    }
+    
+    stages {
+        stage('Validate AWS CLI Credentials') {
+            steps {
+                script {
+                    sh """
+                    aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
+                    aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
+                    aws configure set region ${AWS_REGION}
+                    
+                    aws sts get-caller-identity
+                    """
+                }
+            }
+        }
+        
+        stage('Checkout SCM') {
+            steps {
+                checkout(scmGit(
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://github.com/Imsk31/angular-springboot.git']]
+                ))
+            }
+        }
+        
+        stage('Delete Kubernetes Resources') {
+            steps {
+                script {
+                    try {
+                        // Update kubeconfig
+                        sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}"
+                        
+                        // Delete resources in dev namespace
+                        sh '''
+                        kubectl delete all --all -n dev
+                        kubectl delete ingress --all -n dev
+                        kubectl delete ns dev
+                        '''
+                        
+                        // Delete AWS Load Balancer Controller
+                        sh '''
+                        kubectl delete -f https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.7.2/v2_7_2_full.yaml || true
+                        kubectl delete -f https://github.com/jetstack/cert-manager/releases/download/v1.13.5/cert-manager.yaml || true
+                        '''
+                    } catch (Exception e) {
+                        echo "Error deleting Kubernetes resources: ${e.message}"
+                        echo "Continuing with destruction..."
+                    }
+                }
+            }
+        }
+        
+        stage('Delete EKS Cluster') {
+            steps {
+                script {
+                    try {
+                        // Delete the EKS cluster using eksctl
+                        sh "eksctl delete cluster --name ${CLUSTER_NAME} --region ${AWS_REGION} --wait"
+                    } catch (Exception e) {
+                        echo "Error deleting EKS cluster: ${e.message}"
+                        echo "Continuing with destruction..."
+                    }
+                }
+            }
+        }
+        
+        stage('Delete IAM Resources') {
+            steps {
+                script {
+                    try {
+                        // Delete IAM service account and policy
+                        sh '''
+                        eksctl delete iamserviceaccount \
+                            --cluster=msd \
+                            --namespace=kube-system \
+                            --name=aws-load-balancer-controller || true
+                            
+                        aws iam delete-policy \
+                            --policy-arn arn:aws:iam::891377175977:policy/AWSLoadBalancerControllerIAMPolicy || true
+                        '''
+                    } catch (Exception e) {
+                        echo "Error deleting IAM resources: ${e.message}"
+                        echo "Continuing with destruction..."
+                    }
+                }
+            }
+        }
+        
+        stage('Delete ECR Images') {
+            steps {
+                script {
+                    try {
+                        // Delete images from ECR repositories
+                        sh '''
+                        aws ecr-public batch-delete-image \
+                            --repository-name backend \
+                            --image-ids imageTag=latest || true
+                            
+                        aws ecr-public batch-delete-image \
+                            --repository-name frontend \
+                            --image-ids imageTag=latest || true
+                        '''
+                    } catch (Exception e) {
+                        echo "Error deleting ECR images: ${e.message}"
+                        echo "Continuing with destruction..."
+                    }
+                }
+            }
+        }
+        
+        stage('Destroy Terraform Infrastructure') {
+            steps {
+                dir('terraform') {
+                    // Initialize Terraform
+                    sh 'terraform init'
+                    
+                    // Destroy infrastructure
+                    sh 'terraform destroy --auto-approve'
+                }
+            }
+        }
+        
+        stage('Clear Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Destruction pipeline execution completed.'
+        }
+        failure {
+            echo 'Destruction pipeline failed.'
+        }
+        success {
+            echo 'Destruction pipeline succeeded.'
+        }
+    }
+}
